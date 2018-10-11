@@ -33,32 +33,29 @@ import org.jlab.mya.stream.IntEventStream;
  */
 public class Trippy {
 
-    public Trippy() throws SQLException, IOException {
-        DataNexus nexus = new OnDemandNexus(Deployment.ops);
+    public static final int MAX_RECOVERY_SECONDS = 3600; // 1 Hour
+    public static final String MASTER_FSD_NODE_PV = "ISD0I011G";
+    public static final String HALL_A_RECOVERY_PV = "HLA:bta_bm_present";
+    public static final String HALL_B_RECOVERY_PV = "HLB:bta_bm_present";
+    public static final String HALL_C_RECOVERY_PV = "HLC:bta_bm_present";
+    public static final String HALL_D_RECOVERY_PV = "HLD:bta_bm_present";
+    public static final DateTimeFormatter TIMESTAMP_FORMATTER
+            = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.systemDefault());
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                .withZone(ZoneId.systemDefault());
+    public void exportRecoveryToExcel(Instant begin, Instant end, String filepath) throws SQLException, IOException {
+        DataNexus nexus = new OnDemandNexus(Deployment.ops);
 
         IntervalService service = new IntervalService(nexus);
 
-        final int MAX_RECOVERY_SECONDS = 3600; // 1 Hour
-        final String masterFsdNodePv = "ISD0I011G";
-        final String hallARecoveryPv = "HLA:bta_bm_present";
-        final String hallBRecoveryPv = "HLB:bta_bm_present";
-        final String hallCRecoveryPv = "HLC:bta_bm_present";
-        final String hallDRecoveryPv = "HLD:bta_bm_present";
-
-        Instant begin = LocalDateTime.parse("2017-01-01T00:00:00.123456").atZone(ZoneId.systemDefault()).toInstant();
-        Instant end = LocalDateTime.parse("2019-01-01T00:01:00.123456").atZone(ZoneId.systemDefault()).toInstant();
-
-        List<TreeSet<Instant>> masterPoints = getFsdMasterPoints(service, masterFsdNodePv, begin, end);
+        List<TreeSet<Instant>> masterPoints = getFsdMasterPoints(service, MASTER_FSD_NODE_PV, begin, end);
         TreeSet<Instant> masterRecoverySet = masterPoints.get(0);
         TreeSet<Instant> masterTripSet = masterPoints.get(1);
 
-        TreeSet<Instant> hallARecoverySet = getBinaryPoint(service, hallARecoveryPv, begin, end, true);
-        TreeSet<Instant> hallBRecoverySet = getBinaryPoint(service, hallBRecoveryPv, begin, end, true);
-        TreeSet<Instant> hallCRecoverySet = getBinaryPoint(service, hallCRecoveryPv, begin, end, true);
-        TreeSet<Instant> hallDRecoverySet = getBinaryPoint(service, hallDRecoveryPv, begin, end, true);
+        TreeSet<Instant> hallARecoverySet = getIntUpdatesWithValue(service, HALL_A_RECOVERY_PV, begin, end, true);
+        TreeSet<Instant> hallBRecoverySet = getIntUpdatesWithValue(service, HALL_B_RECOVERY_PV, begin, end, true);
+        TreeSet<Instant> hallCRecoverySet = getIntUpdatesWithValue(service, HALL_C_RECOVERY_PV, begin, end, true);
+        TreeSet<Instant> hallDRecoverySet = getIntUpdatesWithValue(service, HALL_D_RECOVERY_PV, begin, end, true);
 
         XSSFWorkbook wb = new XSSFWorkbook();
         Sheet sheet1 = wb.createSheet("Trip Recovery");
@@ -82,14 +79,11 @@ public class Trippy {
         row1.createCell(9).setCellValue("C RECOVERY SECONDS");
         row1.createCell(10).setCellValue("D RECOVERY SECONDS");
 
-        //((XSSFSheet) sheet1).getColumnHelper().setColDefaultStyle(0, dateStyle);
-        //((XSSFSheet) sheet1).getColumnHelper().setColDefaultStyle(1, dateStyle);
         for (Instant tripClear : masterRecoverySet) {
 
             Instant tripDown = masterTripSet.lower(tripClear);
             Instant nextTrip = masterTripSet.higher(tripClear);
 
-            //System.out.println(tripDown);
             Instant hallARecoveryEnd = hallARecoverySet.higher(tripClear);
             Instant hallBRecoveryEnd = hallBRecoverySet.higher(tripClear);
             Instant hallCRecoveryEnd = hallCRecoverySet.higher(tripClear);
@@ -125,7 +119,6 @@ public class Trippy {
             }
 
             if (tripRecovery != null && tripRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
-                //System.out.println("row: " + rowCounter);
                 Row row = sheet1.createRow(rowCounter++);
 
                 Cell c;
@@ -140,9 +133,7 @@ public class Trippy {
                 c.setCellValue(Date.from(tripClear));
                 c.setCellStyle(dateStyle);
 
-                if (tripRecovery != null) {
-                    row.createCell(6).setCellValue(tripRecovery.getSeconds());
-                }
+                row.createCell(6).setCellValue(tripRecovery.getSeconds());
 
                 //System.out.println(formatter.format(tripClear) + " - ");
                 if (hallARecovery != null && hallARecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
@@ -188,21 +179,31 @@ public class Trippy {
         sheet1.setColumnWidth(9, 20 * 256);
         sheet1.setColumnWidth(10, 20 * 256);
 
-        try (FileOutputStream out = new FileOutputStream("trips.xlsx")) {
+        try (FileOutputStream out = new FileOutputStream(filepath)) {
             wb.write(out);
-        }
-
-        
+        } // TODO: probably should use streaming API of POI
     }
 
     /**
      * @param args the command line arguments
+     * @throws java.sql.SQLException
+     * @throws java.io.IOException
      */
     public static void main(String[] args) throws SQLException, IOException {
-        new Trippy();
+        
+        String filepath = "trips.xlsx";
+        String start = "2017-01-01T00:00:00.000000";
+        String finish = "2019-01-01T00:01:00.000000";
+        
+        Instant begin = LocalDateTime.parse(start).atZone(ZoneId.systemDefault()).toInstant();
+        Instant end = LocalDateTime.parse(finish).atZone(ZoneId.systemDefault()).toInstant();
+        
+        Trippy trippy = new Trippy();
+        
+        trippy.exportRecoveryToExcel(begin, end, filepath);
     }
 
-    private TreeSet<Instant> getBinaryPoint(IntervalService service, String pv, Instant begin, Instant end, boolean one) throws SQLException, IOException {
+    private TreeSet<Instant> getIntUpdatesWithValue(IntervalService service, String pv, Instant begin, Instant end, boolean one) throws SQLException, IOException {
         Metadata metadata = service.findMetadata(pv);
         IntervalQueryParams params = new IntervalQueryParams(metadata, begin, end);
 
@@ -231,7 +232,7 @@ public class Trippy {
         TreeSet<Instant> setZero = new TreeSet<>();
 
         // 0 and 1 values do not alternate as it is possible for a trip to occur during another trip as a trip just means a new non-zero value
-        // However, we only care about first value change that started trip so we track changes skip trips-in-a-trip
+        // However, we only care about first value change that started trip so we track last update and skip trips-in-a-trip
         boolean inTrip = false;
 
         try (IntEventStream stream = service.openIntStream(params)) {
@@ -259,5 +260,4 @@ public class Trippy {
 
         return list;
     }
-
 }
