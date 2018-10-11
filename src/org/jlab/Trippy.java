@@ -17,9 +17,6 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.streaming.SXSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jlab.mya.DataNexus;
 import org.jlab.mya.Deployment;
@@ -195,7 +192,7 @@ public class Trippy {
             wb.write(out);
         }
 
-        wb.close();
+        
     }
 
     /**
