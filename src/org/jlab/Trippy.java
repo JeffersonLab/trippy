@@ -36,26 +36,6 @@ import org.jlab.mya.stream.IntEventStream;
  */
 public class Trippy {
 
-    /*public void Trippy2() throws SQLException, IOException {
-        DataNexus nexus = new OnDemandNexus(Deployment.ops);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                .withZone(ZoneId.systemDefault());
-
-        IntervalService service = new IntervalService(nexus);
-
-        final int MAX_RECOVERY_SECONDS = 3600; // 1 Hour
-        final String masterFsdNodePv = "ISD0I011G";
-        final String hallARecoveryPv = "HLA:bta_bm_present";
-        final String hallBRecoveryPv = "HLB:bta_bm_present";
-        final String hallCRecoveryPv = "HLC:bta_bm_present";
-        final String hallDRecoveryPv = "HLD:bta_bm_present";
-
-        Instant begin = LocalDateTime.parse("2017-01-01T00:00:00.123456").atZone(ZoneId.systemDefault()).toInstant();
-        Instant end = LocalDateTime.parse("2019-01-01T00:01:00.123456").atZone(ZoneId.systemDefault()).toInstant();
-
-        TreeSet<Instant> masterRecoverySet = getBinaryPoint(service, masterFsdNodePv, begin, end, true);        
-    }*/
     public Trippy() throws SQLException, IOException {
         DataNexus nexus = new OnDemandNexus(Deployment.ops);
 
@@ -141,53 +121,60 @@ public class Trippy {
             Duration hallCRecovery = hallCRecoveryEnd == null ? null : Duration.between(tripClear, hallCRecoveryEnd);
             Duration hallDRecovery = hallDRecoveryEnd == null ? null : Duration.between(tripClear, hallDRecoveryEnd);
 
-            //System.out.println("row: " + rowCounter);
-            Row row = sheet1.createRow(rowCounter++);
-
-            Cell c;
-
-            if (tripDown != null) {
-                c = row.createCell(0);
-                c.setCellValue(Date.from(tripDown));
-                c.setCellStyle(dateStyle);
-            }
-
-            c = row.createCell(1);
-            c.setCellValue(Date.from(tripClear));
-            c.setCellStyle(dateStyle);
+            Duration tripRecovery = null;
 
             if (tripDown != null && tripClear != null) {
-                Duration tripRecovery = Duration.between(tripDown, tripClear);
-                row.createCell(6).setCellValue(tripRecovery.getSeconds());
+                tripRecovery = Duration.between(tripDown, tripClear);
             }
 
-            //System.out.println(formatter.format(tripClear) + " - ");
-            if (hallARecovery != null && hallARecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
-                c = row.createCell(2);
-                c.setCellValue(Date.from(hallARecoveryEnd));
-                c.setCellStyle(dateStyle);
-                row.createCell(7).setCellValue(hallARecovery.getSeconds());
-            }
+            if (tripRecovery != null && tripRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
+                //System.out.println("row: " + rowCounter);
+                Row row = sheet1.createRow(rowCounter++);
 
-            if (hallBRecovery != null && hallBRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
-                c = row.createCell(3);
-                c.setCellValue(Date.from(hallBRecoveryEnd));
-                c.setCellStyle(dateStyle);
-                row.createCell(8).setCellValue(hallBRecovery.getSeconds());
-            }
+                Cell c;
 
-            if (hallCRecovery != null && hallCRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
-                c = row.createCell(4);
-                c.setCellValue(Date.from(hallCRecoveryEnd));
-                c.setCellStyle(dateStyle);
-                row.createCell(9).setCellValue(hallCRecovery.getSeconds());
-            }
+                if (tripDown != null) {
+                    c = row.createCell(0);
+                    c.setCellValue(Date.from(tripDown));
+                    c.setCellStyle(dateStyle);
+                }
 
-            if (hallDRecovery != null && hallDRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
-                c = row.createCell(5);
-                c.setCellValue(Date.from(hallDRecoveryEnd));
+                c = row.createCell(1);
+                c.setCellValue(Date.from(tripClear));
                 c.setCellStyle(dateStyle);
-                row.createCell(10).setCellValue(hallDRecovery.getSeconds());
+
+                if (tripRecovery != null) {
+                    row.createCell(6).setCellValue(tripRecovery.getSeconds());
+                }
+
+                //System.out.println(formatter.format(tripClear) + " - ");
+                if (hallARecovery != null && hallARecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
+                    c = row.createCell(2);
+                    c.setCellValue(Date.from(hallARecoveryEnd));
+                    c.setCellStyle(dateStyle);
+                    row.createCell(7).setCellValue(hallARecovery.getSeconds());
+                }
+
+                if (hallBRecovery != null && hallBRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
+                    c = row.createCell(3);
+                    c.setCellValue(Date.from(hallBRecoveryEnd));
+                    c.setCellStyle(dateStyle);
+                    row.createCell(8).setCellValue(hallBRecovery.getSeconds());
+                }
+
+                if (hallCRecovery != null && hallCRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
+                    c = row.createCell(4);
+                    c.setCellValue(Date.from(hallCRecoveryEnd));
+                    c.setCellStyle(dateStyle);
+                    row.createCell(9).setCellValue(hallCRecovery.getSeconds());
+                }
+
+                if (hallDRecovery != null && hallDRecovery.getSeconds() < MAX_RECOVERY_SECONDS) {
+                    c = row.createCell(5);
+                    c.setCellValue(Date.from(hallDRecoveryEnd));
+                    c.setCellStyle(dateStyle);
+                    row.createCell(10).setCellValue(hallDRecovery.getSeconds());
+                }
             }
         }
 
@@ -249,15 +236,15 @@ public class Trippy {
         // 0 and 1 values do not alternate as it is possible for a trip to occur during another trip as a trip just means a new non-zero value
         // However, we only care about first value change that started trip so we track changes skip trips-in-a-trip
         boolean inTrip = false;
-        
+
         try (IntEventStream stream = service.openIntStream(params)) {
 
             IntEvent event;
 
             while ((event = stream.read()) != null) {
-                
+
                 if (event.getValue() > 0) { // Not actually 1, and usuaully is just non zero integer
-                    if(!inTrip) { // Skip a trip-in-a-trip
+                    if (!inTrip) { // Skip a trip-in-a-trip
                         setOne.add(event.getTimestampAsInstant());
                         inTrip = true;
                     }
