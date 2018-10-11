@@ -1,0 +1,8 @@
+/nbproject/
+/dist/
+/nbbuild.xml
+/manifest.mf
+/trips.xlsx
+/config/credentials.properties
+/config/deployments.properties
+/lib/
