@@ -6,3 +6,4 @@
 /config/credentials.properties
 /config/deployments.properties
 /lib/
+/.gradle/

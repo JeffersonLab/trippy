@@ -1,0 +1,43 @@
+description = 'Trip Analysis Tool'
+version = '0.1.0'
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile group: 'org.apache.poi', name: 'poi', version: '3.9'
+    compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.6'
+    runtime files('config')
+}
+
+sourceSets.main.java.srcDirs = ['src']
+mainClassName = 'org.jlab.Trippy'
+
+task excel (type: JavaExec) {
+    group 'Application'
+    description 'Dump Restore Times to Excel'
+    main = 'org.jlab.Trippy'
+    classpath = sourceSets.main.runtimeClasspath
+    if(project.hasProperty('clientargs')){
+        args(clientargs.split(','))
+    }      
+}
+
+task config (){
+    def console = System.console()
+    if (console) {
+        def username = console.readLine('> Please enter mya username: ')
+        def password = console.readPassword('> Please enter mya password: ')
+        doLast {
+            new File("$projectDir/config/credentials.properties").text = """username=$username
+password=$password
+"""
+        }
+    } else {
+        logger.error "Cannot get console, try running as: 'gradlew -Dorg.gradle.daemon=false config'"
+    }
+}
