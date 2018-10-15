@@ -8,9 +8,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.TreeSet;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -48,14 +46,14 @@ public class Trippy {
 
         IntervalService service = new IntervalService(nexus);
 
-        List<TreeSet<Instant>> masterPoints = getFsdMasterPoints(service, MASTER_FSD_NODE_PV, begin, end);
-        TreeSet<Instant> masterRecoverySet = masterPoints.get(0);
-        TreeSet<Instant> masterTripSet = masterPoints.get(1);
+        TripAndClearUpdates fsdUpdates = getFsdTripAndClearUpdates(service, MASTER_FSD_NODE_PV, begin, end);
+        TreeSet<Instant> masterTripSet = fsdUpdates.tripSet;        
+        TreeSet<Instant> masterRecoverySet = fsdUpdates.clearSet;
 
-        TreeSet<Instant> hallARecoverySet = getIntUpdatesWithValue(service, HALL_A_RECOVERY_PV, begin, end, true);
-        TreeSet<Instant> hallBRecoverySet = getIntUpdatesWithValue(service, HALL_B_RECOVERY_PV, begin, end, true);
-        TreeSet<Instant> hallCRecoverySet = getIntUpdatesWithValue(service, HALL_C_RECOVERY_PV, begin, end, true);
-        TreeSet<Instant> hallDRecoverySet = getIntUpdatesWithValue(service, HALL_D_RECOVERY_PV, begin, end, true);
+        TreeSet<Instant> hallARecoverySet = getIntUpdatesWithValue(service, HALL_A_RECOVERY_PV, begin, end, 1);
+        TreeSet<Instant> hallBRecoverySet = getIntUpdatesWithValue(service, HALL_B_RECOVERY_PV, begin, end, 1);
+        TreeSet<Instant> hallCRecoverySet = getIntUpdatesWithValue(service, HALL_C_RECOVERY_PV, begin, end, 1);
+        TreeSet<Instant> hallDRecoverySet = getIntUpdatesWithValue(service, HALL_D_RECOVERY_PV, begin, end, 1);
 
         XSSFWorkbook wb = new XSSFWorkbook();
         Sheet sheet1 = wb.createSheet("Trip Recovery");
@@ -203,7 +201,7 @@ public class Trippy {
         trippy.exportRecoveryToExcel(begin, end, filepath);
     }
 
-    private TreeSet<Instant> getIntUpdatesWithValue(IntervalService service, String pv, Instant begin, Instant end, boolean one) throws SQLException, IOException {
+    private TreeSet<Instant> getIntUpdatesWithValue(final IntervalService service, final String pv, final Instant begin, final Instant end, final int value) throws SQLException, IOException {
         Metadata metadata = service.findMetadata(pv);
         IntervalQueryParams params = new IntervalQueryParams(metadata, begin, end);
 
@@ -215,7 +213,7 @@ public class Trippy {
 
             while ((event = stream.read()) != null) {
 
-                if ((one && event.getValue() == 1) || (!one && event.getValue() == 0)) {
+                if (event.getValue() == value) {
                     set.add(event.getTimestampAsInstant());
                 }
             }
@@ -224,12 +222,11 @@ public class Trippy {
         return set;
     }
 
-    private List<TreeSet<Instant>> getFsdMasterPoints(IntervalService service, String pv, Instant begin, Instant end) throws SQLException, IOException {
+    private TripAndClearUpdates getFsdTripAndClearUpdates(IntervalService service, String pv, Instant begin, Instant end) throws SQLException, IOException {
         Metadata metadata = service.findMetadata(pv);
         IntervalQueryParams params = new IntervalQueryParams(metadata, begin, end);
 
-        TreeSet<Instant> setOne = new TreeSet<>();
-        TreeSet<Instant> setZero = new TreeSet<>();
+        TripAndClearUpdates fsdUpdates = new TripAndClearUpdates();
 
         // 0 and 1 values do not alternate as it is possible for a trip to occur during another trip as a trip just means a new non-zero value
         // However, we only care about first value change that started trip so we track last update and skip trips-in-a-trip
@@ -243,21 +240,21 @@ public class Trippy {
 
                 if (event.getValue() > 0) { // Not actually 1, and usuaully is just non zero integer
                     if (!inTrip) { // Skip a trip-in-a-trip
-                        setOne.add(event.getTimestampAsInstant());
+                        fsdUpdates.tripSet.add(event.getTimestampAsInstant());
                         inTrip = true;
                     }
                 } else {
-                    setZero.add(event.getTimestampAsInstant());
+                    fsdUpdates.clearSet.add(event.getTimestampAsInstant());
                     inTrip = false;
                 }
             }
         }
 
-        ArrayList<TreeSet<Instant>> list = new ArrayList<>();
-
-        list.add(setZero);
-        list.add(setOne);
-
-        return list;
+        return fsdUpdates;
+    }
+    
+    private class TripAndClearUpdates {
+        public TreeSet<Instant> tripSet = new TreeSet<>();
+        public TreeSet<Instant> clearSet = new TreeSet<>();
     }
 }
