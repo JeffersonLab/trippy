@@ -26,18 +26,3 @@ task excel (type: JavaExec) {
         args(clientargs.split(','))
     }      
 }
-
-task config (){
-    def console = System.console()
-    if (console) {
-        def username = console.readLine('> Please enter mya username: ')
-        def password = console.readPassword('> Please enter mya password: ')
-        doLast {
-            new File("$projectDir/config/credentials.properties").text = """username=$username
-password=$password
-"""
-        }
-    } else {
-        logger.error "Cannot get console, try running as: 'gradlew -Dorg.gradle.daemon=false config'"
-    }
-}
