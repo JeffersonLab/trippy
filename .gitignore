@@ -7,3 +7,4 @@
 /config/deployments.properties
 /lib/
 /.gradle/
+/build/

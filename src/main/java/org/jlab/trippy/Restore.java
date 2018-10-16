@@ -1,4 +1,4 @@
-package org.jlab;
+package org.jlab.trippy;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,7 +29,7 @@ import org.jlab.mya.stream.IntEventStream;
  *
  * @author ryans
  */
-public class Trippy {
+public class Restore {
 
     public static final int MAX_RECOVERY_SECONDS = 3600; // 1 Hour
     public static final String MASTER_FSD_NODE_PV = "ISD0I011G";
@@ -189,14 +189,18 @@ public class Trippy {
      */
     public static void main(String[] args) throws SQLException, IOException {
         
-        String filepath = "trips.xlsx";
-        String start = "2017-01-01T00:00:00.000000";
-        String finish = "2019-01-01T00:01:00.000000";
+        if(args.length != 3) {
+            throw new RuntimeException("Usage: java org.jlab.Trippy start end filename");
+        }
+        
+        String start = args[0];
+        String finish = args[1];
+        String filepath = args[2];     
         
         Instant begin = LocalDateTime.parse(start).atZone(ZoneId.systemDefault()).toInstant();
         Instant end = LocalDateTime.parse(finish).atZone(ZoneId.systemDefault()).toInstant();
         
-        Trippy trippy = new Trippy();
+        Restore trippy = new Restore();
         
         trippy.exportRecoveryToExcel(begin, end, filepath);
     }

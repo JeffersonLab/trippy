@@ -15,14 +15,13 @@ dependencies {
 }
 
 sourceSets.main.java.srcDirs = ['src']
-mainClassName = 'org.jlab.Trippy'
 
-task excel (type: JavaExec) {
+task restore (type: JavaExec) {
     group 'Application'
     description 'Dump Restore Times to Excel'
-    main = 'org.jlab.Trippy'
+    main = 'org.jlab.trippy.Restore'
     classpath = sourceSets.main.runtimeClasspath
-    if(project.hasProperty('clientargs')){
+    if(project.hasProperty('args')){
         args(clientargs.split(','))
     }      
 }
