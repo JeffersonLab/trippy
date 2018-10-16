@@ -13,5 +13,5 @@ gradlew build
 Currently trippy only supports computing the time and duration of hall restore after trips and dumps to an Excel file.   Run with:
 
 ```
-gradlew restore -Pargs="2017-01-01T00:00:00 2019-01-01T00:00:00 trips.xlsx"
+gradlew restore -Parameters="2017-01-01T00:00:00,2019-01-01T00:00:00,trips.xlsx"
 ```
