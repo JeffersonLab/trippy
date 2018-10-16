@@ -23,7 +23,7 @@ task restore (type: JavaExec) {
     description 'Dump Restore Times to Excel'
     main = 'org.jlab.trippy.Restore'
     classpath = sourceSets.main.runtimeClasspath
-    if(project.hasProperty('args')){
-        args(clientargs.split(','))
+    if(project.hasProperty('arameters')){
+        args(arameters.split(','))
     }      
 }
