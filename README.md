@@ -8,7 +8,7 @@ cd trippy
 gradlew build
 ```
 
-__Note__: If you are behind a firewall you might need to setup a proxy.  At Jefferson Lab on a Linux workstation you could execute:
+__Note__: If you are behind a firewall you might need to setup a proxy.  At Jefferson Lab on a Linux workstation with a tcsh shell you could execute:
 
 ```
 setenv https_proxy jprox.jlab.org:8081
