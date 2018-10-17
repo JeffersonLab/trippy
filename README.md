@@ -8,6 +8,12 @@ cd trippy
 gradlew build
 ```
 
+__Note__: If you are behind a firewall you might need to setup a proxy.  At Jefferson Lab on a Linux workstation you could execute:
+
+```
+setenv https_proxy jprox.jlab.org:8081
+```
+
 ## Run
 
 Currently trippy only supports computing the time and duration of hall restore after trips and dumps to an Excel file.   Run with:
