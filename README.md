@@ -8,6 +8,7 @@ cd trippy
 gradlew build
 ```
 __Note__: Build script assumes you have access to build.acc.jlab.org.  If not you can modify build.gradle to get jmyapi off jitpack.io or the like.  An example is commented out it the file.  We can't use jitpack.io because our proxy blocks it.
+
 __Note__: [JLab Proxy Settings](https://github.com/JeffersonLab/jmyapi/wiki/JLab-Proxy)
 
 ## Run
