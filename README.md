@@ -20,6 +20,10 @@ Currently trippy only supports computing the time and duration of hall restore a
 ```
 gradlew restore -Parameters="2017-01-01T00:00:00,2019-01-01T00:00:00,trips.xlsx"
 ```
+__Note__: The JLab Proxy can bite you even if you are simply running a task as the Gradle can still attempt to connect to repos.  Your run command might actually look like:
+```
+gradlew -Dhttps.proxyHost=jprox.jlab.org -Dhttps.proxyPort=8081 -Djavax.net.ssl.trustStore=/etc/pki/ca-trust/extracted/java/cacerts restore -Parameters="2017-01-01T00:00:00,2019-01-01T00:00:00,trips.xlsx"
+```
 
 ## See Also
 [jmyapi](https://github.com/JeffersonLab/jmyapi)
