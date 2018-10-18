@@ -11,6 +11,8 @@ __Note__: Build script assumes you have access to build.acc.jlab.org.  If not, y
 
 __Note__: [JLab Proxy Settings](https://github.com/JeffersonLab/jmyapi/wiki/JLab-Proxy)
 
+__Note__: You must configure jmyapi with config/credentials.properties and config/deployments.properties.
+
 ## Run
 
 Currently trippy only supports computing the time and duration of hall restore after trips and dumps to an Excel file.   Run with:
